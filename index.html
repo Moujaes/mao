@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A minha régua: IA ou mão · Moujaës</title>
+<meta name="description" content="Oito tarefas de criar conteúdo. Toca em cada uma e marca: IA ajuda ou só a sua mão.">
+<meta property="og:title" content="A minha régua: IA ou mão · Moujaës">
+<meta property="og:description" content="Oito tarefas de criar conteúdo. Toca em cada uma e marca: IA ajuda ou só a sua mão.">
+<meta name="theme-color" content="#F3EEE4">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --papel: #F3EEE4;
+    --ficha: #F9F5EC;
+    --tinta: #1C1A17;
+    --sepia: #C2B596;
+    --bordo: #4C1E26;
+    --cinza: #6B655C;
+    --serifa: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --mola: cubic-bezier(.3, 1.7, .5, 1);
+    /* grão de papel: ruído fino em tinta, e manchas largas por baixo */
+    --grao: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .11 0 0 0 0 .1 0 0 0 0 .09 .62 0 0 0 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    --manchas: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .011' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .54 0 0 0 0 .35 0 0 0 0 .2 .34 0 0 0 -.11'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+    --grao-claro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .93 0 0 0 0 .89 .4 0 0 0 -.145'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--grao), var(--manchas), var(--papel);
+    color: var(--tinta);
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+  .pagina { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+  .rotulo {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--cinza);
+  }
+
+  /* assinatura */
+  .topo { padding: 30px 0 0; text-align: center; }
+  .topo img { width: 168px; max-width: 50%; height: auto; display: block; margin: 0 auto; }
+
+  /* abertura */
+  .abre { padding: 26px 0 4px; }
+  h1 {
+    font-family: var(--serifa);
+    font-weight: 500;
+    font-size: clamp(38px, 11vw, 60px);
+    line-height: 1.02;
+    letter-spacing: -.012em;
+    margin: 14px 0 18px;
+    text-wrap: balance;
+  }
+  h1 em { font-style: italic; color: var(--bordo); }
+  .lead { margin: 0; max-width: 34em; }
+  .lead strong { font-weight: 600; }
+
+  /* fotos do arquivo, soltas sobre o papel */
+  .foto {
+    position: absolute;
+    display: block;
+    height: auto;
+    box-shadow: 0 1px 2px rgba(28, 26, 23, .22), 0 10px 22px rgba(28, 26, 23, .12);
+  }
+  .soltas { position: relative; max-width: 400px; aspect-ratio: 6 / 5; margin: 30px auto 8px; }
+  .soltas .f1 { width: 66%; left: 0; top: 3%; transform: rotate(-3deg); }
+  .soltas .f2 { width: 60%; right: 0; top: 45%; transform: rotate(2.5deg); }
+
+  /* a ficha */
+  .ficha {
+    position: relative;
+    background: var(--grao), var(--ficha);
+    border: 1px solid var(--sepia);
+    margin: 30px -6px 0;
+    box-shadow: 0 1px 0 rgba(28, 26, 23, .16), 0 18px 34px -22px rgba(28, 26, 23, .5);
+  }
+  .placar {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 9px 12px;
+    padding: 13px 15px 12px;
+    background: var(--grao), var(--ficha);
+    border-bottom: 1px solid var(--tinta);
+  }
+  #conta {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    transform-origin: 100% 60%;
+  }
+  #conta.bate { animation: bate .34s var(--mola); }
+  @keyframes bate { from { transform: scale(1.22); } to { transform: scale(1); } }
+  .pips { grid-column: 1 / -1; display: flex; gap: 4px; }
+  .pips i { flex: 1; height: 4px; background: var(--sepia); opacity: .55; transition: background-color .2s, opacity .2s; }
+  .pips i.ia { background: var(--tinta); opacity: 1; }
+  .pips i.mao { background: var(--bordo); opacity: 1; }
+
+  .tarefas { list-style: none; margin: 0; padding: 0; }
+  .tarefa {
+    padding: 20px 15px 22px;
+    border-bottom: 1px solid var(--sepia);
+    scroll-margin-top: 62px;
+    transition: background-color .2s;
+  }
+  .etiqueta {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--cinza);
+    margin: 0 0 8px;
+    transition: color .2s;
+  }
+  .q {
+    font-family: var(--serifa);
+    font-weight: 500;
+    font-size: clamp(25px, 7vw, 30px);
+    line-height: 1.1;
+    letter-spacing: -.005em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .porque { margin: 9px 0 0; font-size: 14px; line-height: 1.5; color: var(--cinza); }
+  .porque .disse { display: block; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 3px; color: var(--bordo); opacity: .8; }
+  .porque q { font-style: italic; quotes: "“" "”"; }
+  .tarefa.marcada { background-color: rgba(76, 30, 38, .05); }
+  .tarefa.marcada .etiqueta { color: var(--bordo); }
+
+  /* as respostas: duas etiquetas de papel para tocar */
+  .respostas { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .respostas input { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+  .resp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 54px;
+    padding: 0 8px;
+    border: 1.5px solid var(--tinta);
+    background: rgba(255, 255, 255, .6);
+    box-shadow: inset 0 1px 2px rgba(28, 26, 23, .1), 0 2px 0 rgba(28, 26, 23, .14);
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: .12em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .3s var(--mola), background-color .18s, color .18s, border-color .18s, box-shadow .18s;
+  }
+  .resp svg { width: 22px; height: 22px; flex: none; overflow: visible; }
+  .resp .quadro { fill: none; stroke: currentColor; stroke-width: 1.5; }
+  .resp .visto {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 34;
+    stroke-dashoffset: 34;
+    transition: stroke-dashoffset .26s cubic-bezier(.3, .7, .2, 1);
+  }
+  .resp:active { transform: scale(.95); }
+  .respostas input:checked + .resp {
+    background: var(--grao-claro), var(--tinta);
+    border-color: var(--tinta);
+    color: var(--papel);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .25), 0 1px 0 rgba(28, 26, 23, .1);
+    transform: translateY(1px);
+  }
+  .respostas input.m:checked + .resp { background: var(--grao-claro), var(--bordo); border-color: var(--bordo); }
+  .respostas input:checked + .resp .visto { stroke-dashoffset: 0; }
+  .respostas input:focus-visible + .resp { outline: 2px solid var(--bordo); outline-offset: 3px; }
+  @media (hover: hover) {
+    .resp:hover { border-color: var(--bordo); }
+  }
+
+  /* o resultado */
+  .resultado { padding: 22px 15px 24px; }
+  .barra { display: flex; gap: 4px; margin: 4px 0 8px; }
+  .barra i {
+    flex: 1;
+    height: 30px;
+    border: 1px solid var(--sepia);
+    background: transparent;
+    transform-origin: 50% 100%;
+    transition: background-color .25s, border-color .25s;
+  }
+  .barra i.ia { background: var(--grao-claro), var(--tinta); border-color: var(--tinta); }
+  .barra i.mao { background: var(--grao-claro), var(--bordo); border-color: var(--bordo); }
+  .carimbando .barra i { animation: sobe .5s var(--mola) both; }
+  .carimbando .barra i:nth-child(2) { animation-delay: .04s; }
+  .carimbando .barra i:nth-child(3) { animation-delay: .08s; }
+  .carimbando .barra i:nth-child(4) { animation-delay: .12s; }
+  .carimbando .barra i:nth-child(5) { animation-delay: .16s; }
+  .carimbando .barra i:nth-child(6) { animation-delay: .2s; }
+  .carimbando .barra i:nth-child(7) { animation-delay: .24s; }
+  .carimbando .barra i:nth-child(8) { animation-delay: .28s; }
+  @keyframes sobe { from { transform: scaleY(.2); } to { transform: scaleY(1); } }
+  .legenda { display: flex; gap: 18px; margin: 0 0 20px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--cinza); }
+  .legenda span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 7px; vertical-align: -1px; }
+  .legenda .l-ia::before { background: var(--tinta); }
+  .legenda .l-mao::before { background: var(--bordo); }
+
+  .laudo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 14px;
+    align-items: center;
+    min-height: 132px;
+  }
+  .veredito {
+    font-family: var(--serifa);
+    font-weight: 500;
+    font-size: clamp(26px, 7.4vw, 34px);
+    line-height: 1.04;
+    margin: 0 0 8px;
+  }
+  .completa .veredito { font-size: clamp(30px, 8.6vw, 40px); line-height: 1.02; margin-bottom: 12px; }
+  .veredito em { font-style: italic; color: var(--bordo); }
+  .linha { margin: 0; font-size: 14px; line-height: 1.5; color: var(--cinza); }
+  .completa .linha { color: var(--tinta); }
+  .limpar {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--cinza);
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--sepia);
+    border-radius: 0;
+    padding: 12px 0 4px;
+    margin-top: 6px;
+    min-height: 40px;
+    cursor: pointer;
+  }
+  .limpar:hover, .limpar:focus-visible { color: var(--bordo); border-color: var(--bordo); outline: none; }
+  .limpar[hidden] { display: none; }
+  .vaga {
+    position: relative;
+    aspect-ratio: 150 / 108;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px dashed var(--sepia);
+    border-radius: 50%;
+    transform: rotate(-7deg);
+    transition: border-color .2s;
+  }
+  .vaga .rotulo { font-size: 9.5px; color: var(--sepia); transition: opacity .15s; }
+  .vaga .carimbo { position: absolute; inset: -5%; width: 110%; height: auto; opacity: 0; }
+  .completa .vaga { border-color: transparent; }
+  .completa .vaga .rotulo { opacity: 0; }
+  .completa .vaga .carimbo { opacity: 1; }
+  .carimbando .vaga .carimbo { animation: carimba .42s cubic-bezier(.2, .8, .3, 1) .55s both; }
+  @keyframes carimba {
+    0% { opacity: 0; transform: scale(1.7); }
+    55% { opacity: 1; transform: scale(.95); }
+    78% { transform: scale(1.025); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .regra { margin: 20px 0 0; padding-top: 14px; border-top: 1px solid var(--sepia); font-size: 12px; line-height: 1.55; color: var(--cinza); }
+
+  /* Gutenberg e a mão */
+  .historia { margin: 54px 0 0; }
+  .historia h2 {
+    font-family: var(--serifa);
+    font-weight: 500;
+    font-size: clamp(30px, 8.6vw, 44px);
+    line-height: 1.04;
+    margin: 12px 0 6px;
+  }
+  .historia h2 em { font-style: italic; color: var(--bordo); }
+  .historia .sub { margin: 0 0 22px; font-size: 14px; color: var(--cinza); max-width: 34em; }
+  .fatos { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .fato {
+    background: var(--grao), var(--ficha);
+    border: 1px solid var(--sepia);
+    padding: 18px 16px 16px;
+    box-shadow: 0 1px 0 rgba(28, 26, 23, .12);
+  }
+  .fato:nth-child(1) { transform: rotate(-.6deg); }
+  .fato:nth-child(3) { transform: rotate(.5deg); }
+  .ano {
+    display: block;
+    font-family: var(--serifa);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 46px;
+    line-height: 1;
+    color: var(--bordo);
+    margin-bottom: 10px;
+  }
+  .fato p { margin: 0; font-size: 14.5px; line-height: 1.55; }
+  .fonte { display: block; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--sepia); font-size: 11px; letter-spacing: .08em; color: var(--cinza); }
+  .fonte a { color: var(--tinta); text-underline-offset: 3px; overflow-wrap: anywhere; }
+  .fonte a:hover { color: var(--bordo); }
+
+  /* a frase */
+  .faixa {
+    background: var(--grao-claro), var(--bordo);
+    color: var(--papel);
+    margin-top: 54px;
+    padding: 46px 0 50px;
+  }
+  .faixa .rotulo { color: var(--papel); opacity: .74; }
+  .grande {
+    font-family: var(--serifa);
+    font-weight: 500;
+    font-size: clamp(38px, 11.4vw, 92px);
+    line-height: 1;
+    letter-spacing: -.018em;
+    margin: 16px 0 0;
+    text-wrap: balance;
+  }
+  .grande em { font-style: italic; }
+  .guarda { margin: 30px 0 0; font-size: 13px; letter-spacing: .04em; opacity: .86; max-width: 30em; }
+
+  /* rodapé */
+  .rodape { text-align: center; padding: 56px 0 44px; }
+  .carimbo-fim { display: block; width: 132px; height: auto; margin: 0 auto 26px; transform: rotate(-7deg); }
+  .rodape .wordmark { width: 230px; max-width: 70%; height: auto; display: block; margin: 0 auto 18px; }
+  .rodape .links { display: flex; justify-content: center; gap: 26px; }
+  .rodape a { font-family: var(--mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--tinta); text-underline-offset: 4px; padding: 8px 0; }
+  .rodape a:hover { color: var(--bordo); }
+  .rodape .arroba { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--cinza); margin-top: 8px; }
+
+  @media (min-width: 560px) {
+    .ficha { margin-left: 0; margin-right: 0; }
+    .placar { padding: 15px 22px 13px; }
+    .tarefa { padding: 24px 22px 26px; }
+    .respostas { max-width: 400px; }
+    .resultado { padding: 26px 22px 28px; }
+    .laudo { grid-template-columns: minmax(0, 1fr) 150px; }
+    .fatos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (min-width: 980px) {
+    .topo { text-align: left; padding-top: 34px; }
+    .topo img { margin: 0; }
+    .duas { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 60px; align-items: start; }
+    .abre { position: sticky; top: 12px; padding-top: 30px; }
+    .soltas { margin-left: 0; }
+    .ficha { margin-top: 34px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #conta.bate, .carimbando .vaga .carimbo, .carimbando .barra i { animation: none; }
+    .resp, .resp .visto, .pips i, .barra i { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+  <div class="topo">
+    <img src="assets/wm-v3-b-179-sp-tinta.svg" alt="Moujaës, número 179, São Paulo" width="168" height="59">
+  </div>
+
+  <main class="duas">
+
+    <header class="abre">
+      <div class="rotulo">Material do vídeo · para montar a sua</div>
+      <h1>A minha régua: IA ou <em>mão.</em></h1>
+      <p class="lead"><strong>A IA acelera. Quem decide o que vale a pena sou eu.</strong> São oito tarefas de criar conteúdo. Toca em cada uma e marca onde ela fica na sua régua.</p>
+      <div class="soltas">
+        <img class="foto f1" src="assets/arquivo-p03-02.jpg" alt="Foto de arquivo: a margem de um rio vista de um barco." width="720" height="505">
+        <img class="foto f2" src="assets/arquivo-p05-03.jpg" alt="Foto de arquivo: barcos num rio." width="720" height="501">
+      </div>
+    </header>
+
+    <section class="ficha" id="ficha" aria-label="A régua: IA ou mão">
+      <div class="placar">
+        <span class="rotulo">A régua</span>
+        <output id="conta" aria-live="polite">0 de 8</output>
+        <div class="pips" id="pips" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <ol class="tarefas" id="tarefas"></ol>
+
+      <div class="resultado" id="resultado">
+        <div class="barra" id="barra" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="legenda" aria-hidden="true"><span class="l-ia">IA ajuda</span><span class="l-mao">Só minha mão</span></div>
+
+        <div class="laudo">
+          <div aria-live="polite">
+            <p class="veredito" id="veredito">Nenhuma marcada.</p>
+            <p class="linha" id="linha">Começa pela primeira.</p>
+            <button class="limpar" id="limpar" type="button" hidden>Montar de novo</button>
+          </div>
+          <div class="vaga" aria-hidden="true">
+            <span class="rotulo">Carimbo</span>
+            <img class="carimbo" id="selo" src="assets/carimbo-barco-sp_transp.png" alt="" width="150" height="108">
+          </div>
+        </div>
+
+        <p class="regra">Não tem resposta certa. É a sua divisão de hoje: o que a IA faz mais rápido e o que só sai da sua mão.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <section class="historia" aria-labelledby="historia-t">
+    <div class="rotulo">A história do vídeo</div>
+    <h2 id="historia-t">Gutenberg e a <em>mão.</em></h2>
+    <p class="sub">Três fatos do vídeo, com a fonte de cada um.</p>
+    <ol class="fatos">
+      <li class="fato">
+        <span class="ano">1455</span>
+        <p>Em Mainz, Gutenberg termina a Bíblia impressa. Dois volumes, 1.282 páginas, feitos entre 1452 e 1455 com muitos ajudantes.</p>
+        <span class="fonte">Fonte: <a href="https://www.mainz.de/en/microsite/gutenberg-museum/Forschung_Sammlung_/Gutenberg_Bibeln" rel="noopener">Gutenberg-Museum Mainz</a></span>
+      </li>
+      <li class="fato">
+        <span class="ano">49</span>
+        <p>A Bíblia saía da prensa sem a cor. Cada comprador mandava fazer os enfeites e a capa com artesãos, à mão. Das 49 que existem hoje, nenhuma é igual a outra.</p>
+        <span class="fonte">Fonte: <a href="https://www.mainz.de/en/microsite/gutenberg-museum/Forschung_Sammlung_/Gutenberg_Bibeln" rel="noopener">Gutenberg-Museum Mainz</a></span>
+      </li>
+      <li class="fato">
+        <span class="ano">1508–1512</span>
+        <p>Michelangelo assina o contrato do teto da Capela Sistina em maio de 1508. O teto fica pronto em outubro de 1512.</p>
+        <span class="fonte">Fonte: <a href="https://www.museivaticani.va/content/museivaticani/en/collezioni/musei/cappella-sistina/volta.html" rel="noopener">Musei Vaticani</a></span>
+      </li>
+    </ol>
+  </section>
+</div>
+
+<section class="faixa" aria-label="A frase do vídeo">
+  <div class="pagina">
+    <div class="rotulo">A frase do vídeo</div>
+    <p class="grande">Vai ganhar fazendo o que as pessoas querem <em>guardar.</em></p>
+    <p class="guarda">Se esse é o próximo Renascimento, que parte você quer fazer nele?</p>
+  </div>
+</section>
+
+<div class="pagina">
+  <footer class="rodape">
+    <img class="carimbo-fim" src="assets/carimbo-barco-sp_transp.png" alt="" width="150" height="108" loading="lazy">
+    <img class="wordmark" src="assets/wm-v3-b-179-sp-tinta.svg" alt="Moujaës, número 179, São Paulo" width="230" height="81" loading="lazy">
+    <nav class="links" aria-label="Moujaës nas redes">
+      <a href="https://www.instagram.com/moujaes_________179/" rel="noopener">Instagram</a>
+      <a href="https://www.youtube.com/@lutchpromicia" rel="noopener">YouTube</a>
+    </nav>
+    <div class="arroba">@moujaes_________179</div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var CHAVE = "moujaes-mao-v1";
+  // As oito tarefas. "disse" é a fala do vídeo, palavra por palavra.
+  var TAREFAS = [
+    { etiqueta: "Transcrever", q: "Transcrever o que eu gravei.", porque: "Passar a fala para texto, palavra por palavra." },
+    { etiqueta: "Cortar o vídeo", q: "Cortar o vídeo.", disse: "Não usar hoje em dia um Claude pra editar um vídeo é uma doideira." },
+    { etiqueta: "Achar ideia", q: "Achar a ideia do próximo vídeo.", porque: "Juntar assuntos, referências e pontos de partida." },
+    { etiqueta: "Decidir", q: "Decidir o que vale a pena.", disse: "Achar o que ler ficou fácil, achar o que valia ler ficou difícil." },
+    { etiqueta: "Roteiro", q: "Escrever o roteiro.", disse: "Mas deixar que ele faça seu roteiro (…) daí é loucura." },
+    { etiqueta: "O que eu falo", q: "Pensar no que eu vou falar.", disse: "Pense sobre o que você vai falar (…) daí é loucura." },
+    { etiqueta: "A pergunta final", q: "Escolher a pergunta que fecha o vídeo.", porque: "A que fica para quem assistiu responder nos comentários." },
+    { etiqueta: "A revisão", q: "Revisar antes de postar.", disse: "E escreva sem um toque humano, daí é loucura." }
+  ];
+  var TOTAL = TAREFAS.length;
+  var EXTENSO = ["", "uma", "duas", "três", "quatro", "cinco", "seis", "sete"];
+  var FRASE = "A IA me deixa mais rápido. Não decide o que eu faço.";
+
+  // monta os cartões
+  var lista = document.getElementById("tarefas");
+  var visto = '<svg viewBox="0 0 22 22" aria-hidden="true"><rect class="quadro" x="1.5" y="3.5" width="16" height="16"/><path class="visto" d="M4.5 11.5 L9 16.5 L20 2.5"/></svg>';
+  TAREFAS.forEach(function (t, i) {
+    var n = i + 1;
+    var nn = (n < 10 ? "0" : "") + n;
+    var nota = t.disse
+      ? '<p class="porque"><span class="disse">No vídeo</span><q>' + t.disse + "</q></p>"
+      : '<p class="porque">' + t.porque + "</p>";
+    var li = document.createElement("li");
+    li.className = "tarefa";
+    li.id = "t" + n;
+    li.innerHTML =
+      '<span class="etiqueta">' + nn + " · " + t.etiqueta + "</span>" +
+      '<h2 class="q" id="t' + n + '-t">' + t.q + "</h2>" + nota +
+      '<div class="respostas" role="radiogroup" aria-labelledby="t' + n + '-t">' +
+        '<input type="radio" class="i" name="t' + n + '" id="t' + n + '-ia" value="i">' +
+        '<label class="resp" for="t' + n + '-ia">' + visto + "IA ajuda</label>" +
+        '<input type="radio" class="m" name="t' + n + '" id="t' + n + '-mao" value="m">' +
+        '<label class="resp" for="t' + n + '-mao">' + visto + "Só minha mão</label>" +
+      "</div>";
+    lista.appendChild(li);
+  });
+
+  var ficha = document.getElementById("ficha");
+  var conta = document.getElementById("conta");
+  var veredito = document.getElementById("veredito");
+  var linha = document.getElementById("linha");
+  var limpar = document.getElementById("limpar");
+  var pips = Array.prototype.slice.call(document.querySelectorAll("#pips i"));
+  var barra = Array.prototype.slice.call(document.querySelectorAll("#barra i"));
+  var itens = [];
+  for (var k = 1; k <= TOTAL; k++) {
+    itens.push({
+      li: document.getElementById("t" + k),
+      i: document.getElementById("t" + k + "-ia"),
+      m: document.getElementById("t" + k + "-mao")
+    });
+  }
+
+  // #r=im-m---- (ou ?r=) abre a página já marcada, sem ler nem gravar neste navegador.
+  // Uma letra por tarefa: i = IA ajuda, m = só minha mão, - = em branco.
+  function pedidoDaUrl() {
+    var m = /(?:^|[#?&])r=([im\-]*)/i.exec(location.hash) || /(?:^|[?&])r=([im\-]*)/i.exec(location.search);
+    return m ? m[1].toLowerCase() : null;
+  }
+  var pedido = pedidoDaUrl();
+  var guarda = pedido === null;
+
+  function estado() {
+    return itens.map(function (p) { return p.i.checked ? "i" : p.m.checked ? "m" : "-"; }).join("");
+  }
+  function aplicar(texto) {
+    itens.forEach(function (p, i) {
+      var c = (texto || "").charAt(i);
+      p.i.checked = c === "i";
+      p.m.checked = c === "m";
+    });
+  }
+  function ler() {
+    try { return localStorage.getItem(CHAVE) || ""; } catch (e) { return ""; }
+  }
+  function gravar() {
+    if (!guarda) return;
+    try { localStorage.setItem(CHAVE, estado()); } catch (e) {}
+  }
+
+  var antes = -1;
+  function atualizar(porToque) {
+    var e = estado();
+    var n = 0, ia = 0, mao = 0;
+    itens.forEach(function (p, i) {
+      var c = e.charAt(i);
+      var marcada = c !== "-";
+      if (marcada) n++;
+      if (c === "i") ia++;
+      if (c === "m") mao++;
+      p.li.classList.toggle("marcada", marcada);
+      pips[i].classList.toggle("ia", c === "i");
+      pips[i].classList.toggle("mao", c === "m");
+    });
+
+    conta.textContent = n + " de " + TOTAL;
+    if (porToque && n !== antes) {
+      conta.classList.remove("bate");
+      void conta.offsetWidth;
+      conta.classList.add("bate");
+    }
+
+    var completa = n === TOTAL;
+    var chegou = completa && antes !== TOTAL;
+    ficha.classList.toggle("completa", completa);
+    if (chegou && porToque) {
+      ficha.classList.remove("carimbando");
+      void ficha.offsetWidth;
+      ficha.classList.add("carimbando");
+    } else if (!completa) {
+      ficha.classList.remove("carimbando");
+    }
+    limpar.hidden = n === 0;
+
+    // a barra mostra a régua só quando está completa; antes fica vazia
+    barra.forEach(function (b, i) {
+      var c = completa ? e.charAt(i) : "-";
+      b.classList.toggle("ia", c === "i");
+      b.classList.toggle("mao", c === "m");
+    });
+
+    if (n === 0) {
+      veredito.textContent = "Nenhuma marcada.";
+      linha.textContent = "Começa pela primeira.";
+      ficha.removeAttribute("data-ia");
+      ficha.removeAttribute("data-mao");
+    } else if (!completa) {
+      var falta = TOTAL - n;
+      veredito.textContent = (falta === 1 ? "Falta " : "Faltam ") + EXTENSO[falta] + ".";
+      linha.textContent = "A sua régua sai com as oito.";
+      ficha.removeAttribute("data-ia");
+      ficha.removeAttribute("data-mao");
+    } else {
+      veredito.innerHTML = ia + " com IA, " + mao + " só com a <em>mão.</em>";
+      linha.textContent = FRASE;
+      ficha.setAttribute("data-ia", ia);
+      ficha.setAttribute("data-mao", mao);
+    }
+    antes = n;
+  }
+
+  aplicar(guarda ? ler() : pedido);
+  itens.forEach(function (p) {
+    [p.i, p.m].forEach(function (r) {
+      r.addEventListener("change", function () { gravar(); atualizar(true); });
+    });
+  });
+
+  limpar.addEventListener("click", function () {
+    aplicar("");
+    gravar();
+    atualizar(true);
+    ficha.scrollIntoView({ block: "start" });
+  });
+
+  window.addEventListener("hashchange", function () {
+    var novo = pedidoDaUrl();
+    if (novo === null) return;
+    guarda = false;
+    aplicar(novo);
+    atualizar(false);
+  });
+
+  atualizar(false);
+})();
+</script>
+</body>
+</html>
